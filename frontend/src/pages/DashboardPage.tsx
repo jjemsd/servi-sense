@@ -28,6 +28,10 @@ export function DashboardPage() {
 
   const greeting = user?.full_name || user?.username || "there";
   const kpis = data?.kpis;
+  const byMonth = data?.by_month ?? [];
+  const byOffice = data?.by_office ?? [];
+  const byStatus = data?.by_status ?? [];
+  const secondChartData = user?.role === "admin" ? byOffice : byStatus;
 
   return (
     <>
@@ -81,7 +85,7 @@ export function DashboardPage() {
             <div className="chart-panel-subtitle">Records per month</div>
           </div>
           <div className="chart-panel-body">
-            {!data || data.by_month.length === 0 ? (
+            {byMonth.length === 0 ? (
               <div
                 style={{
                   height: 240,
@@ -94,7 +98,7 @@ export function DashboardPage() {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={240}>
-                <LineChart data={data.by_month}>
+                <LineChart data={byMonth}>
                   <CartesianGrid stroke="#E5E8EE" strokeDasharray="3 3" />
                   <XAxis dataKey="label" stroke="#6B7280" fontSize={12} />
                   <YAxis stroke="#6B7280" fontSize={12} allowDecimals={false} />
@@ -124,18 +128,20 @@ export function DashboardPage() {
             </div>
           </div>
           <div className="chart-panel-body">
-            {!data ? (
-              <div style={{ height: 240 }} />
+            {secondChartData.length === 0 ? (
+              <div
+                style={{
+                  height: 240,
+                  display: "grid",
+                  placeItems: "center",
+                  color: "var(--color-text-subtle)",
+                }}
+              >
+                No data
+              </div>
             ) : (
               <ResponsiveContainer width="100%" height={240}>
-                <BarChart
-                  data={
-                    user?.role === "admin"
-                      ? data.by_office
-                      : data.by_status
-                  }
-                  layout="vertical"
-                >
+                <BarChart data={secondChartData} layout="vertical">
                   <CartesianGrid stroke="#E5E8EE" strokeDasharray="3 3" />
                   <XAxis
                     type="number"

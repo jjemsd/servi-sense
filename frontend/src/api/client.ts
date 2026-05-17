@@ -9,6 +9,17 @@
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
+// One-line debug aid: confirms at a glance which backend the bundle is hitting.
+// In dev, this is empty (Vite proxy). In prod, this MUST be set to the
+// deployed backend URL; otherwise relative /api/* requests fall into the SPA
+// rewrite and return index.html.
+if (typeof window !== "undefined") {
+  // eslint-disable-next-line no-console
+  console.info(
+    `[ServiSense] API base = ${API_BASE || "(relative — using dev proxy)"}`,
+  );
+}
+
 export class ApiError extends Error {
   status: number;
   detail: unknown;
@@ -103,10 +114,18 @@ export async function apiFetch<T>(
     return undefined as T;
   }
 
-  // Binary downloads — let callers use res.blob() via a different helper
+  // Hard guard: every API endpoint must return JSON. If we get HTML/text here
+  // it almost always means the request hit the static-site origin instead of
+  // the backend — i.e. VITE_API_URL is not set, so relative `/api/...` paths
+  // are being caught by the SPA rewrite and returning index.html.
   const contentType = res.headers.get("Content-Type") || "";
   if (!contentType.includes("application/json")) {
-    return (await res.blob()) as unknown as T;
+    throw new ApiError(
+      res.status,
+      `Expected JSON from the API but received "${contentType || "no content-type"}". ` +
+        `This usually means VITE_API_URL is not set, so the request hit the frontend's own ` +
+        `domain instead of the backend.`,
+    );
   }
 
   return (await res.json()) as T;
