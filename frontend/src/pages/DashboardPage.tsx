@@ -1,140 +1,188 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { PageHeader } from "../components/PageHeader";
-import { getReference } from "../api/reference";
-import { listServices } from "../api/services";
-import type { ReferenceData, Service } from "../types/api";
+import { getAnalytics, type AnalyticsData } from "../api/analytics";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const [reference, setReference] = useState<ReferenceData | null>(null);
-  const [services, setServices] = useState<Service[]>([]);
+  const [data, setData] = useState<AnalyticsData | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([getReference(), listServices()])
-      .then(([ref, svc]) => {
-        setReference(ref);
-        setServices(svc);
-      })
-      .catch((err) => setError(err.message ?? "Failed to load"));
+    getAnalytics()
+      .then(setData)
+      .catch((e) => setError(e?.message ?? "Failed to load"));
   }, []);
 
-  const greetingName = user?.full_name || user?.username || "there";
+  const greeting = user?.full_name || user?.username || "there";
 
   return (
     <>
       <PageHeader
-        title={`Welcome, ${greetingName}`}
-        subtitle="Student Services Utilization & Performance Analytics"
+        title={`Welcome, ${greeting}`}
+        subtitle={
+          user?.role === "admin"
+            ? "Cross-office overview · admin view"
+            : `Overview · ${user?.assigned_office ?? "your office"}`
+        }
+        actions={
+          <Link to="/records/add" className="btn btn-primary">
+            + Add record
+          </Link>
+        }
       />
 
       {error && <div className="banner banner-error">{error}</div>}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "1.25rem",
-          marginBottom: "2rem",
-        }}
-      >
-        <StatCard
-          label="Your role"
-          value={user?.role ?? "—"}
-          subtitle={user?.assigned_office ?? "all offices"}
+      <div className="stats-grid">
+        <Stat
+          label="Total records"
+          value={data?.kpis.total_records ?? "—"}
+          subtitle="all-time"
         />
-        <StatCard
-          label="Active services"
-          value={services.length || "—"}
-          subtitle="in the catalog"
+        <Stat
+          label="Unique students"
+          value={data?.kpis.unique_students ?? "—"}
+          subtitle="served"
         />
-        <StatCard
-          label="Departments"
-          value={reference?.departments.length ?? "—"}
-          subtitle="academic programs"
+        <Stat
+          label="Avg satisfaction"
+          value={
+            data?.kpis.avg_satisfaction != null
+              ? `${data.kpis.avg_satisfaction} ★`
+              : "—"
+          }
+          subtitle="out of 5"
         />
-        <StatCard
-          label="Backend status"
-          value="connected"
-          subtitle="API + DB online"
-          tone="success"
+        <Stat
+          label="Services used"
+          value={data?.kpis.active_services_used ?? "—"}
+          subtitle="distinct"
         />
       </div>
 
-      <div className="card" style={{ padding: "1.5rem" }}>
-        <h3
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "18px",
-            color: "var(--color-navy)",
-            marginBottom: "1rem",
-          }}
-        >
-          Stage 4 complete — frontend wired to backend
-        </h3>
-        <p style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }}>
-          The auth flow, routing, layout shell, and API client are all
-          functional. Charts, the records table, the upload form, and analytics
-          come in Stage 5.
-        </p>
-        <p style={{ color: "var(--color-text-muted)" }}>
-          The numbers above were just loaded from the live backend, which
-          confirms cookies + CORS are working end-to-end.
-        </p>
+      <div className="chart-grid">
+        <div className="chart-panel">
+          <div className="chart-panel-header">
+            <div className="chart-panel-title">Monthly volume</div>
+            <div className="chart-panel-subtitle">Records per month</div>
+          </div>
+          <div className="chart-panel-body">
+            {!data || data.by_month.length === 0 ? (
+              <div
+                style={{
+                  height: 240,
+                  display: "grid",
+                  placeItems: "center",
+                  color: "var(--color-text-subtle)",
+                }}
+              >
+                No data yet. Start by adding records.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={data.by_month}>
+                  <CartesianGrid stroke="#E5E8EE" strokeDasharray="3 3" />
+                  <XAxis dataKey="label" stroke="#6B7280" fontSize={12} />
+                  <YAxis stroke="#6B7280" fontSize={12} allowDecimals={false} />
+                  <Tooltip />
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="#D4AF37"
+                    strokeWidth={2.5}
+                    dot={{ fill: "#0B1F3A", r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        <div className="chart-panel">
+          <div className="chart-panel-header">
+            <div className="chart-panel-title">
+              {user?.role === "admin" ? "By office" : "Status breakdown"}
+            </div>
+            <div className="chart-panel-subtitle">
+              {user?.role === "admin"
+                ? "Where records originate"
+                : "Record outcomes"}
+            </div>
+          </div>
+          <div className="chart-panel-body">
+            {!data ? (
+              <div style={{ height: 240 }} />
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart
+                  data={
+                    user?.role === "admin"
+                      ? data.by_office
+                      : data.by_status
+                  }
+                  layout="vertical"
+                >
+                  <CartesianGrid stroke="#E5E8EE" strokeDasharray="3 3" />
+                  <XAxis
+                    type="number"
+                    stroke="#6B7280"
+                    fontSize={12}
+                    allowDecimals={false}
+                  />
+                  <YAxis
+                    dataKey="label"
+                    type="category"
+                    width={120}
+                    stroke="#6B7280"
+                    fontSize={12}
+                  />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#0B1F3A" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
       </div>
+
+      <p className="muted" style={{ marginTop: "var(--space-5)" }}>
+        Need more depth? Visit the{" "}
+        <Link to="/analytics" className="text-link">
+          Analytics page
+        </Link>
+        .
+      </p>
     </>
   );
 }
 
-function StatCard({
+function Stat({
   label,
   value,
   subtitle,
-  tone = "default",
 }: {
   label: string;
   value: string | number;
   subtitle?: string;
-  tone?: "default" | "success";
 }) {
   return (
-    <div
-      className="card"
-      style={{
-        padding: "1.25rem",
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          textTransform: "uppercase",
-          letterSpacing: "0.6px",
-          color: "var(--color-text-muted)",
-          fontWeight: 600,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: 26,
-          fontWeight: 700,
-          color: tone === "success" ? "var(--color-success)" : "var(--color-navy)",
-          textTransform: "capitalize",
-        }}
-      >
-        {value}
-      </div>
-      {subtitle && (
-        <div style={{ fontSize: 12, color: "var(--color-text-subtle)" }}>
-          {subtitle}
-        </div>
-      )}
+    <div className="stat-card">
+      <div className="stat-label">{label}</div>
+      <div className="stat-value">{value}</div>
+      {subtitle && <div className="stat-subtitle">{subtitle}</div>}
     </div>
   );
 }

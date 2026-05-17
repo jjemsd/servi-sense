@@ -73,6 +73,15 @@ export function Sidebar() {
 
         <div className="nav-divider">More</div>
         <NavLink
+          to="/profile"
+          className={({ isActive }) =>
+            isActive ? "nav-item active" : "nav-item"
+          }
+        >
+          <span className="nav-icon">◉</span>
+          My Account
+        </NavLink>
+        <NavLink
           to="/about"
           className={({ isActive }) =>
             isActive ? "nav-item active" : "nav-item"

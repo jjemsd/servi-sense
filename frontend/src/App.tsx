@@ -7,17 +7,17 @@ import {
 import { AuthProvider } from "./auth/AuthContext";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { Layout } from "./components/Layout";
+
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { RecordsPage } from "./pages/RecordsPage";
+import { AddRecordPage } from "./pages/AddRecordPage";
+import { UploadPage } from "./pages/UploadPage";
+import { AnalyticsPage } from "./pages/AnalyticsPage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { UsersPage } from "./pages/UsersPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { AboutPage } from "./pages/AboutPage";
-import {
-  AddRecordPage,
-  AnalyticsPage,
-  RecordsPage,
-  SettingsPage,
-  UploadPage,
-  UsersPage,
-} from "./pages/StubPages";
 
 export default function App() {
   return (
@@ -36,6 +36,7 @@ export default function App() {
               <Route path="/records/add" element={<AddRecordPage />} />
               <Route path="/uploads" element={<UploadPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
               <Route path="/about" element={<AboutPage />} />
 
               {/* Admin only */}

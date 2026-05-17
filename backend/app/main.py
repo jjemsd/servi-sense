@@ -12,6 +12,7 @@ from app.config import settings
 from app.database import Base, SessionLocal, engine
 from app import models  # noqa: F401 — registers models with Base.metadata
 from app.routers import (
+    analytics as analytics_router,
     auth as auth_router,
     records as records_router,
     reference as reference_router,
@@ -90,6 +91,7 @@ app.include_router(services_router.router)
 app.include_router(records_router.router)
 app.include_router(uploads_router.router)
 app.include_router(reference_router.router)
+app.include_router(analytics_router.router)
 
 
 # ── Health / root ────────────────────────────────────────────────────────────
