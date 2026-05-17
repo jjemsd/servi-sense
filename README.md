@@ -3,8 +3,25 @@
 Student Services Utilization & Performance Analytics System.
 React + TypeScript frontend, FastAPI + PostgreSQL backend.
 
-> **You are on Stage 1: Project Scaffolding.**
-> This is the minimal skeleton — auth, records, dashboard, etc. all come in later stages.
+> **You are on Stage 2: Database Models + Auth.**
+> ✅ Stage 1 — scaffolding (FastAPI shell, CORS, env vars, Render deploy)
+> ✅ Stage 2 — auth (bcrypt hashing, session cookies, login/logout/me, seeded users)
+> ⏳ Stage 3 — records, services, users CRUD endpoints
+> ⏳ Stage 4 — frontend layout shell, routing, auth context
+> ⏳ Stage 5 — frontend pages
+> ⏳ Stage 6 — frontend deployment + CORS lockdown
+
+---
+
+## Demo accounts (seeded on first startup)
+
+| Username | Password | Role | Assigned office |
+|----------|----------|------|-----------------|
+| `admin` | `admin123` | admin | (any) |
+| `guidance` | `guidance123` | staff | Guidance Counseling |
+| `library` | `library123` | staff | Library |
+
+**Change these passwords before any real deployment.**
 
 ---
 
@@ -15,10 +32,16 @@ servisense/
 ├── backend/                ← FastAPI + SQLAlchemy + Postgres
 │   ├── app/
 │   │   ├── __init__.py
-│   │   ├── main.py         ← app entry, CORS, /api/health endpoint
+│   │   ├── main.py         ← app entry, lifespan (table creation + seeding)
 │   │   ├── config.py       ← env-var settings
 │   │   ├── database.py     ← SQLAlchemy engine + get_db dependency
-│   │   └── routers/        ← (empty for now; routes go here in Stage 2+)
+│   │   ├── models.py       ← ORM models (User, Service, ServiceRecord, …)
+│   │   ├── schemas.py      ← Pydantic request/response shapes
+│   │   ├── auth.py         ← bcrypt + session management + dependencies
+│   │   ├── seed.py         ← idempotent default services + demo users
+│   │   └── routers/
+│   │       ├── __init__.py
+│   │       └── auth.py     ← /api/auth/login, /logout, /me
 │   ├── requirements.txt
 │   └── .env.example
 ├── frontend/               ← create this with Vite (see below)
@@ -118,10 +141,7 @@ If you see `error: Failed to fetch`, the backend isn't running or CORS isn't con
 
 ## What's next
 
-Once Stage 1 runs end-to-end on your machine, the next stages are:
-
-- **Stage 2:** Database models + auth (login/logout, bcrypt, seeded demo users)
-- **Stage 3:** Records, services, users CRUD endpoints
+- **Stage 3:** Records, services, users CRUD endpoints + uploads
 - **Stage 4:** Frontend layout shell, auth context, routing
 - **Stage 5:** Frontend pages (dashboard, records, add, upload, analytics, settings, users)
-- **Stage 6:** Deployment to Render
+- **Stage 6:** Frontend deployment to Render + CORS lockdown
