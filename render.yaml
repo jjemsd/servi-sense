@@ -1,10 +1,12 @@
-# Render Blueprint — Stage 1: backend + database only.
-# The static site for the frontend will be added in Stage 6.
+# Render Blueprint — Stage 1: backend + paid Postgres.
+# Frontend static site comes in Stage 6.
 
 databases:
   - name: servisense-db
-    plan: free
+    plan: basic-256mb
     databaseName: servisense
+    region: singapore
+    postgresMajorVersion: "16"
 
 services:
   # ── Backend API ────────────────────────────────────────────────────────────
@@ -24,6 +26,6 @@ services:
       - key: ENV
         value: production
       - key: CORS_ORIGINS
-        sync: false   # set this manually in Render dashboard after frontend deploys
+        sync: false
       - key: PYTHON_VERSION
         value: 3.12.4
