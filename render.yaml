@@ -1,4 +1,5 @@
-# Render Blueprint — deploys backend (web service) + Postgres + frontend (static site)
+# Render Blueprint — Stage 1: backend + database only.
+# The static site for the frontend will be added in Stage 6.
 
 databases:
   - name: servisense-db
@@ -11,6 +12,7 @@ services:
     name: servisense-api
     runtime: python
     plan: free
+    region: singapore
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
@@ -25,19 +27,3 @@ services:
         sync: false   # set this manually in Render dashboard after frontend deploys
       - key: PYTHON_VERSION
         value: 3.12.4
-
-  # ── Frontend (static site) ─────────────────────────────────────────────────
-  - type: web
-    name: servisense-web
-    runtime: static
-    plan: free
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
-    envVars:
-      - key: VITE_API_URL
-        sync: false   # set to https://servisense-api.onrender.com in Render dashboard
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
