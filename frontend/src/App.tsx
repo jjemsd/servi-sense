@@ -13,6 +13,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { RecordsPage } from "./pages/RecordsPage";
 import { AddRecordPage } from "./pages/AddRecordPage";
 import { UploadPage } from "./pages/UploadPage";
+import { UploadDetailPage } from "./pages/UploadDetailPage";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { UsersPage } from "./pages/UsersPage";
@@ -35,6 +36,7 @@ export default function App() {
               <Route path="/records" element={<RecordsPage />} />
               <Route path="/records/add" element={<AddRecordPage />} />
               <Route path="/uploads" element={<UploadPage />} />
+              <Route path="/uploads/:id" element={<UploadDetailPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/about" element={<AboutPage />} />

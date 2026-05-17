@@ -29,3 +29,30 @@ export function downloadUpload(id: number): Promise<Blob> {
 export function deleteUpload(id: number): Promise<MessageResponse> {
   return api.delete<MessageResponse>(`/api/uploads/${id}`);
 }
+
+// ── Preview ────────────────────────────────────────────────────────────────
+export interface UploadPreview {
+  id: number;
+  filename: string;
+  office: string | null;
+  uploaded_at: string | null;
+  uploaded_by: string;
+  size_bytes: number;
+  total_rows: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  columns: string[];
+  rows: Record<string, string | number | boolean | null>[];
+}
+
+export function getUploadPreview(
+  id: number,
+  page = 1,
+  pageSize = 50,
+): Promise<UploadPreview> {
+  return api.get<UploadPreview>(`/api/uploads/${id}/preview`, {
+    page,
+    page_size: pageSize,
+  });
+}

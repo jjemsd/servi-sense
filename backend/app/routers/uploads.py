@@ -320,3 +320,61 @@ def delete_upload(
     db.delete(upload)
     db.commit()
     return MessageResponse(message=f"Deleted upload '{filename}'")
+
+
+# ── Preview an upload ────────────────────────────────────────────────────────
+from fastapi import Query
+import math
+
+
+@router.get("/{upload_id}/preview")
+def preview_upload(
+    upload_id: int,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=500),
+    db: DBSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Parse a previously-uploaded file and return its rows as JSON.
+
+    Staff can only preview uploads for their assigned office; admin can
+    preview any upload.
+    """
+    upload = db.query(UploadedFile).get(upload_id)
+    if not upload:
+        raise HTTPException(status_code=404, detail="Upload not found")
+    if user.role != "admin" and upload.office != user.assigned_office:
+        raise HTTPException(status_code=403, detail="Not authorized for this upload")
+
+    df = _read_file_to_dataframe(upload.filename, upload.content)
+    total_rows = len(df)
+    offset = (page - 1) * page_size
+    chunk = df.iloc[offset : offset + page_size]
+
+    # Normalize cell values to JSON-serializable plain types
+    def _clean(v):
+        if pd.isna(v):
+            return None
+        if isinstance(v, (int, float, bool)):
+            return v
+        return str(v)
+
+    rows = [
+        {str(col): _clean(val) for col, val in row.items()}
+        for _, row in chunk.iterrows()
+    ]
+
+    return {
+        "id": upload.id,
+        "filename": upload.filename,
+        "office": upload.office,
+        "uploaded_at": upload.uploaded_at.isoformat() if upload.uploaded_at else None,
+        "uploaded_by": upload.uploaded_by,
+        "size_bytes": upload.size_bytes,
+        "total_rows": total_rows,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": math.ceil(total_rows / page_size) if total_rows else 1,
+        "columns": [str(c) for c in df.columns],
+        "rows": rows,
+    }
