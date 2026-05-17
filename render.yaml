@@ -2,7 +2,7 @@
 
 databases:
   - name: servisense-db
-    plan: free
+    plan: basic-256mb        # matches the paid tier provisioned in Stage 1
     databaseName: servisense
 
 services:
@@ -27,10 +27,10 @@ services:
         value: 3.12.4
 
   # ── Frontend (static site) ─────────────────────────────────────────────────
+  # Static sites are always free on Render and do NOT take a `plan` field.
   - type: web
     name: servisense-web
     runtime: static
-    plan: free
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
