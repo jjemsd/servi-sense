@@ -98,6 +98,16 @@ class ServiceRecord(Base):
 
     service = relationship("Service", back_populates="records")
 
+    # Convenience accessors used by Pydantic response models so we don't
+    # have to write a manual mapper for every record query.
+    @property
+    def service_name(self) -> str:
+        return self.service.name if self.service else ""
+
+    @property
+    def service_category(self) -> str:
+        return self.service.category if self.service else ""
+
 
 # Helpful composite index for the most common analytics filter
 Index(

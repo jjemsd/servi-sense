@@ -3,13 +3,38 @@
 Student Services Utilization & Performance Analytics System.
 React + TypeScript frontend, FastAPI + PostgreSQL backend.
 
-> **You are on Stage 2: Database Models + Auth.**
+> **You are on Stage 3: Records, Services, Users, Uploads CRUD.**
 > ✅ Stage 1 — scaffolding (FastAPI shell, CORS, env vars, Render deploy)
 > ✅ Stage 2 — auth (bcrypt hashing, session cookies, login/logout/me, seeded users)
-> ⏳ Stage 3 — records, services, users CRUD endpoints
+> ✅ Stage 3 — CRUD endpoints (records, services, users, uploads, reference)
 > ⏳ Stage 4 — frontend layout shell, routing, auth context
 > ⏳ Stage 5 — frontend pages
 > ⏳ Stage 6 — frontend deployment + CORS lockdown
+
+---
+
+## API surface
+
+All endpoints live under `/api/`. Open `https://your-api.onrender.com/docs` for the interactive Swagger UI.
+
+| Endpoint | Auth | Description |
+|----------|------|-------------|
+| `POST /api/auth/login` | — | Login with username+password, sets cookie |
+| `POST /api/auth/logout` | any | Clears session |
+| `GET /api/auth/me` | any | Current user |
+| `GET /api/reference` | any | Dropdown data (departments, offices, etc.) |
+| `GET /api/services` | any | List active services |
+| `POST/PATCH/DELETE /api/services` | admin | Manage service catalog |
+| `GET /api/records` | any | List records (filtered+paginated; staff see own office only) |
+| `POST/PATCH/DELETE /api/records` | any | Manage records (with office scoping) |
+| `GET /api/users` | admin | List users |
+| `POST/PATCH/DELETE /api/users` | admin | Manage users (with safeguards) |
+| `POST /api/users/me/password` | any | Change own password |
+| `POST /api/users/{id}/reset-password` | admin | Reset another user's password |
+| `POST /api/uploads` | any | Bulk import via CSV/Excel |
+| `GET /api/uploads` | any | List uploads (filtered by office for staff) |
+| `GET /api/uploads/{id}/download` | any (scoped) | Download original file |
+| `DELETE /api/uploads/{id}` | any (scoped) | Delete upload |
 
 ---
 
@@ -32,20 +57,26 @@ servisense/
 ├── backend/                ← FastAPI + SQLAlchemy + Postgres
 │   ├── app/
 │   │   ├── __init__.py
-│   │   ├── main.py         ← app entry, lifespan (table creation + seeding)
+│   │   ├── main.py         ← app entry, lifespan, all routers
 │   │   ├── config.py       ← env-var settings
+│   │   ├── constants.py    ← reference data (departments, statuses, …)
 │   │   ├── database.py     ← SQLAlchemy engine + get_db dependency
-│   │   ├── models.py       ← ORM models (User, Service, ServiceRecord, …)
+│   │   ├── models.py       ← ORM models
 │   │   ├── schemas.py      ← Pydantic request/response shapes
 │   │   ├── auth.py         ← bcrypt + session management + dependencies
 │   │   ├── seed.py         ← idempotent default services + demo users
 │   │   └── routers/
 │   │       ├── __init__.py
-│   │       └── auth.py     ← /api/auth/login, /logout, /me
+│   │       ├── auth.py       ← login, logout, me
+│   │       ├── records.py    ← record CRUD with filters
+│   │       ├── services.py   ← service catalog (admin write)
+│   │       ├── users.py      ← user management (admin) + self password
+│   │       ├── uploads.py    ← CSV/Excel bulk import
+│   │       └── reference.py  ← dropdown data
 │   ├── requirements.txt
 │   └── .env.example
-├── frontend/               ← create this with Vite (see below)
-├── render.yaml             ← deployment config for Render.com
+├── frontend/               ← create this with Vite (Stage 4)
+├── render.yaml
 ├── .gitignore
 └── README.md
 ```
@@ -141,7 +172,6 @@ If you see `error: Failed to fetch`, the backend isn't running or CORS isn't con
 
 ## What's next
 
-- **Stage 3:** Records, services, users CRUD endpoints + uploads
-- **Stage 4:** Frontend layout shell, auth context, routing
+- **Stage 4:** Frontend layout shell, auth context, routing (Vite + React + TypeScript)
 - **Stage 5:** Frontend pages (dashboard, records, add, upload, analytics, settings, users)
 - **Stage 6:** Frontend deployment to Render + CORS lockdown
