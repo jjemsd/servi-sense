@@ -27,6 +27,7 @@ export function DashboardPage() {
   }, []);
 
   const greeting = user?.full_name || user?.username || "there";
+  const kpis = data?.kpis;
 
   return (
     <>
@@ -49,26 +50,26 @@ export function DashboardPage() {
       <div className="stats-grid">
         <Stat
           label="Total records"
-          value={data?.kpis.total_records ?? "—"}
+          value={kpis?.total_records ?? "—"}
           subtitle="all-time"
         />
         <Stat
           label="Unique students"
-          value={data?.kpis.unique_students ?? "—"}
+          value={kpis?.unique_students ?? "—"}
           subtitle="served"
         />
         <Stat
           label="Avg satisfaction"
           value={
-            data?.kpis.avg_satisfaction != null
-              ? `${data.kpis.avg_satisfaction} ★`
+            kpis?.avg_satisfaction != null
+              ? `${kpis.avg_satisfaction} ★`
               : "—"
           }
           subtitle="out of 5"
         />
         <Stat
           label="Services used"
-          value={data?.kpis.active_services_used ?? "—"}
+          value={kpis?.active_services_used ?? "—"}
           subtitle="distinct"
         />
       </div>
