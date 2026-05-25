@@ -2,7 +2,7 @@
 
 databases:
   - name: servisense-db
-    plan: basic-256mb        # matches the paid tier provisioned in Stage 1
+    plan: basic-256mb        # first paid Postgres tier
     databaseName: servisense
 
 services:
@@ -10,7 +10,7 @@ services:
   - type: web
     name: servisense-api
     runtime: python
-    plan: free
+    plan: starter            # first paid web-service tier ($7/mo, no cold starts)
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
@@ -27,7 +27,9 @@ services:
         value: 3.12.4
 
   # ── Frontend (static site) ─────────────────────────────────────────────────
-  # Static sites are always free on Render and do NOT take a `plan` field.
+  # Static sites on Render are always free and do NOT accept a `plan` field.
+  # There is no paid tier for static sites; the blueprint will fail to parse
+  # if you add one here.
   - type: web
     name: servisense-web
     runtime: static
