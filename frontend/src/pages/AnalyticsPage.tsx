@@ -3,6 +3,8 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -15,6 +17,20 @@ import { PageHeader } from "../components/PageHeader";
 import { getAnalytics, type AnalyticsData } from "../api/analytics";
 import { getReference } from "../api/reference";
 import type { ReferenceData } from "../types/api";
+
+// Brand palette — one color per office series.
+const PALETTE = [
+  "#0B1F3A",
+  "#D4AF37",
+  "#1A3460",
+  "#8B6914",
+  "#243E6E",
+  "#E8CC6A",
+  "#5A7FBF",
+  "#0F8A5F",
+  "#B7791F",
+  "#5A6B8C",
+];
 
 function StatCard({
   label,
@@ -84,6 +100,13 @@ export function AnalyticsPage() {
   useEffect(() => {
     fetch();
   }, [fetch]);
+
+  // Office series for the comparison charts. When more than one office is
+  // present (admin viewing "All offices"), charts render one series per
+  // office with a legend. With a single office (staff, or a specific office
+  // selected) the charts collapse to a single series and the legend hides.
+  const offices = data?.series_offices ?? [];
+  const multi = offices.length > 1;
 
   return (
     <>
@@ -168,37 +191,45 @@ export function AnalyticsPage() {
           </div>
 
           <div className="chart-grid">
-            {/* Trend over time */}
+            {/* Trend over time — one line per office when comparing */}
             <Panel
               title="Monthly trend"
-              subtitle="Records per month in the selected range"
+              subtitle={
+                multi
+                  ? "Records per month, compared across offices"
+                  : "Records per month in the selected range"
+              }
             >
               {data.by_month.length === 0 ? (
                 <EmptyChart />
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
-                  <LineChart data={data.by_month}>
+                  <LineChart data={data.by_month_by_office}>
                     <CartesianGrid stroke="#E5E8EE" strokeDasharray="3 3" />
                     <XAxis dataKey="label" stroke="#6B7280" fontSize={12} />
                     <YAxis stroke="#6B7280" fontSize={12} allowDecimals={false} />
                     <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="count"
-                      stroke="#D4AF37"
-                      strokeWidth={2.5}
-                      dot={{ fill: "#0B1F3A", r: 4 }}
-                    />
+                    {multi && <Legend wrapperStyle={{ fontSize: 12 }} />}
+                    {offices.map((office, i) => (
+                      <Line
+                        key={office}
+                        type="monotone"
+                        dataKey={office}
+                        stroke={PALETTE[i % PALETTE.length]}
+                        strokeWidth={2.5}
+                        dot={{ r: 3 }}
+                      />
+                    ))}
                   </LineChart>
                 </ResponsiveContainer>
               )}
             </Panel>
 
-            {/* By office */}
+            {/* By office — the overall comparison (admin only) */}
             {user?.role === "admin" && (
               <Panel
                 title="By office"
-                subtitle="Where the records are coming from"
+                subtitle="Total records per office"
               >
                 {data.by_office.length === 0 ? (
                   <EmptyChart />
@@ -209,57 +240,102 @@ export function AnalyticsPage() {
                       <XAxis type="number" stroke="#6B7280" fontSize={12} allowDecimals={false} />
                       <YAxis dataKey="label" type="category" width={140} stroke="#6B7280" fontSize={12} />
                       <Tooltip />
-                      <Bar dataKey="count" fill="#0B1F3A" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                        {data.by_office.map((_, i) => (
+                          <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 )}
               </Panel>
             )}
 
-            {/* By department */}
-            <Panel title="By department" subtitle="Top requesting programs">
+            {/* By department — stacked by office */}
+            <Panel
+              title="By department"
+              subtitle={
+                multi
+                  ? "Requesting programs, stacked by office"
+                  : "Top requesting programs"
+              }
+            >
               {data.by_department.length === 0 ? (
                 <EmptyChart />
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={data.by_department}>
+                  <BarChart data={data.by_department_by_office}>
                     <CartesianGrid stroke="#E5E8EE" strokeDasharray="3 3" />
                     <XAxis dataKey="label" stroke="#6B7280" fontSize={12} />
                     <YAxis stroke="#6B7280" fontSize={12} allowDecimals={false} />
                     <Tooltip />
-                    <Bar dataKey="count" fill="#D4AF37" radius={[4, 4, 0, 0]} />
+                    {multi && <Legend wrapperStyle={{ fontSize: 12 }} />}
+                    {offices.map((office, i) => (
+                      <Bar
+                        key={office}
+                        dataKey={office}
+                        stackId="dept"
+                        fill={PALETTE[i % PALETTE.length]}
+                      />
+                    ))}
                   </BarChart>
                 </ResponsiveContainer>
               )}
             </Panel>
 
-            {/* By day of week */}
-            <Panel title="By day of week" subtitle="Weekly distribution">
+            {/* By day of week — stacked by office */}
+            <Panel
+              title="By day of week"
+              subtitle={
+                multi ? "Weekly distribution, by office" : "Weekly distribution"
+              }
+            >
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart
-                  data={data.by_day_of_week.map((b) => ({
+                  data={data.by_dow_by_office.map((b) => ({
                     ...b,
-                    short: b.label.slice(0, 3),
+                    short: String(b.label).slice(0, 3),
                   }))}
                 >
                   <CartesianGrid stroke="#E5E8EE" strokeDasharray="3 3" />
                   <XAxis dataKey="short" stroke="#6B7280" fontSize={12} />
                   <YAxis stroke="#6B7280" fontSize={12} allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="count" fill="#1A3460" radius={[4, 4, 0, 0]} />
+                  {multi && <Legend wrapperStyle={{ fontSize: 12 }} />}
+                  {offices.map((office, i) => (
+                    <Bar
+                      key={office}
+                      dataKey={office}
+                      stackId="dow"
+                      fill={PALETTE[i % PALETTE.length]}
+                    />
+                  ))}
                 </BarChart>
               </ResponsiveContainer>
             </Panel>
 
-            {/* By hour of day */}
-            <Panel title="By hour of day" subtitle="Peak service hours">
+            {/* By hour of day — stacked by office */}
+            <Panel
+              title="By hour of day"
+              subtitle={
+                multi ? "Peak service hours, by office" : "Peak service hours"
+              }
+            >
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={data.by_hour}>
+                <BarChart data={data.by_hour_by_office}>
                   <CartesianGrid stroke="#E5E8EE" strokeDasharray="3 3" />
                   <XAxis dataKey="hour" stroke="#6B7280" fontSize={12} />
                   <YAxis stroke="#6B7280" fontSize={12} allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="count" fill="#243E6E" radius={[3, 3, 0, 0]} />
+                  {multi && <Legend wrapperStyle={{ fontSize: 12 }} />}
+                  {offices.map((office, i) => (
+                    <Bar
+                      key={office}
+                      dataKey={office}
+                      stackId="hour"
+                      fill={PALETTE[i % PALETTE.length]}
+                    />
+                  ))}
                 </BarChart>
               </ResponsiveContainer>
             </Panel>

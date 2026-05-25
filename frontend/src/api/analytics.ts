@@ -23,6 +23,11 @@ export interface AnalyticsData {
   by_month: Bucket[];
   by_day_of_week: Bucket[];
   by_hour: HourlyBucket[];
+  series_offices: string[];
+  by_month_by_office: Record<string, string | number>[];
+  by_department_by_office: Record<string, string | number>[];
+  by_dow_by_office: Record<string, string | number>[];
+  by_hour_by_office: Record<string, string | number>[];
 }
 
 export interface AnalyticsFilters {

@@ -48,6 +48,15 @@ class AnalyticsResponse(BaseModel):
     by_month: list[Bucket]
     by_day_of_week: list[Bucket]
     by_hour: list[HourlyBucket]
+    # Office-segmented (pivoted) versions for comparison charts. Each row is
+    # a dimension label plus one integer key per office, e.g.
+    #   {"label": "2026-05", "Library": 12, "Cashier": 8, ...}
+    # `series_offices` is the ordered list of office keys present in the rows.
+    series_offices: list[str]
+    by_month_by_office: list[dict]
+    by_department_by_office: list[dict]
+    by_dow_by_office: list[dict]
+    by_hour_by_office: list[dict]
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -176,6 +185,95 @@ def analytics(
     hour_map = {int(h): c for h, c in by_hour_rows if h is not None}
     by_hour = [HourlyBucket(hour=h, count=hour_map.get(h, 0)) for h in range(24)]
 
+    # ── Office-segmented (pivoted) breakdowns for comparison charts ─────────
+    # Determine which offices appear in scope. For staff, just their office.
+    # For admin, all offices present (respecting an explicit office filter).
+    series_offices = [b.label for b in by_office]
+
+    def _pivot(rows, ordered_labels, label_key="label"):
+        """rows: iterable of (office, dim_value, count).
+        Returns [{label_key: dim, office_a: n, office_b: n, ...}] following
+        `ordered_labels` for row order and `series_offices` for columns."""
+        from collections import defaultdict
+
+        table: dict = defaultdict(lambda: defaultdict(int))
+        for office, dim, count in rows:
+            if dim is None:
+                continue
+            table[dim][office] = count
+        result = []
+        for dim in ordered_labels:
+            row = {label_key: dim}
+            for o in series_offices:
+                row[o] = table.get(dim, {}).get(o, 0)
+            result.append(row)
+        return result
+
+    # by month × office
+    month_office_rows = (
+        _apply_filters(_base_query(db, user), office_filter, date_from, date_to)
+        .with_entities(
+            ServiceRecord.office,
+            month_expr.label("month"),
+            func.count(ServiceRecord.id),
+        )
+        .group_by(ServiceRecord.office, "month")
+        .all()
+    )
+    months_ordered = [b.label for b in by_month]
+    by_month_by_office = _pivot(
+        [(o, str(m), c) for o, m, c in month_office_rows], months_ordered
+    )
+
+    # by department × office
+    dept_office_rows = (
+        _apply_filters(_base_query(db, user), office_filter, date_from, date_to)
+        .with_entities(
+            ServiceRecord.office,
+            ServiceRecord.department,
+            func.count(ServiceRecord.id),
+        )
+        .group_by(ServiceRecord.office, ServiceRecord.department)
+        .all()
+    )
+    depts_ordered = [b.label for b in by_department]
+    by_department_by_office = _pivot(
+        [(o, (d or "Unspecified"), c) for o, d, c in dept_office_rows], depts_ordered
+    )
+
+    # by day-of-week × office
+    dow_office_rows = (
+        _apply_filters(_base_query(db, user), office_filter, date_from, date_to)
+        .with_entities(
+            ServiceRecord.office,
+            ServiceRecord.day_of_week,
+            func.count(ServiceRecord.id),
+        )
+        .group_by(ServiceRecord.office, ServiceRecord.day_of_week)
+        .all()
+    )
+    by_dow_by_office = _pivot(
+        [(o, d, c) for o, d, c in dow_office_rows], _DOW_ORDER
+    )
+
+    # by hour × office
+    hour_office_rows = (
+        _apply_filters(_base_query(db, user), office_filter, date_from, date_to)
+        .with_entities(
+            ServiceRecord.office,
+            hour_expr.label("h"),
+            func.count(ServiceRecord.id),
+        )
+        .filter(ServiceRecord.time.isnot(None))
+        .group_by(ServiceRecord.office, "h")
+        .all()
+    )
+    by_hour_by_office = _pivot(
+        [(o, int(h), c) for o, h, c in hour_office_rows if h is not None],
+        list(range(24)),
+        label_key="hour",
+    )
+
     return AnalyticsResponse(
         kpis=kpis,
         by_office=by_office,
@@ -183,4 +281,9 @@ def analytics(
         by_month=by_month,
         by_day_of_week=by_day_of_week,
         by_hour=by_hour,
+        series_offices=series_offices,
+        by_month_by_office=by_month_by_office,
+        by_department_by_office=by_department_by_office,
+        by_dow_by_office=by_dow_by_office,
+        by_hour_by_office=by_hour_by_office,
     )
