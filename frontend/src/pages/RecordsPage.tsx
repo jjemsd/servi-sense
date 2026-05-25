@@ -5,7 +5,6 @@ import { Modal } from "../components/Modal";
 import { PageHeader } from "../components/PageHeader";
 import { Pagination } from "../components/Pagination";
 import { RecordForm } from "../components/RecordForm";
-import { StatusBadge } from "../components/StatusBadge";
 import {
   deleteRecord,
   listRecords,
@@ -27,7 +26,6 @@ interface FilterState {
   office: string;
   department: string;
   service_id: string;
-  status: string;
   date_from: string;
   date_to: string;
   search: string;
@@ -37,7 +35,6 @@ const emptyFilters: FilterState = {
   office: "",
   department: "",
   service_id: "",
-  status: "",
   date_from: "",
   date_to: "",
   search: "",
@@ -73,7 +70,6 @@ export function RecordsPage() {
     if (filters.office) f.office = filters.office;
     if (filters.department) f.department = filters.department;
     if (filters.service_id) f.service_id = Number(filters.service_id);
-    if (filters.status) f.status = filters.status as RecordsFilters["status"];
     if (filters.date_from) f.date_from = filters.date_from;
     if (filters.date_to) f.date_to = filters.date_to;
     if (filters.search) f.search = filters.search;
@@ -164,20 +160,6 @@ export function RecordsPage() {
         </div>
 
         <div className="field">
-          <label className="field-label">Status</label>
-          <select
-            className="select"
-            value={filters.status}
-            onChange={(e) => handleFilter("status", e.target.value)}
-          >
-            <option value="">All</option>
-            {reference?.record_statuses.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="field">
           <label className="field-label">From</label>
           <input
             type="date"
@@ -232,22 +214,20 @@ export function RecordsPage() {
                 <th>Student</th>
                 <th>Department</th>
                 <th>Service</th>
-                <th>Status</th>
-                <th>Rating</th>
                 <th className="col-actions">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={8} className="empty-state">
+                  <td colSpan={6} className="empty-state">
                     Loading records…
                   </td>
                 </tr>
               )}
               {!loading && records.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="empty-state">
+                  <td colSpan={6} className="empty-state">
                     No records match these filters.
                   </td>
                 </tr>
@@ -266,8 +246,6 @@ export function RecordsPage() {
                       <div>{r.service_name}</div>
                       <div className="muted tiny">{r.office}</div>
                     </td>
-                    <td><StatusBadge status={r.status} /></td>
-                    <td>{r.satisfaction_rating ? `${r.satisfaction_rating} ★` : "—"}</td>
                     <td className="col-actions">
                       <div className="row-actions">
                         <button

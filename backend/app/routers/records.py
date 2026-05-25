@@ -63,7 +63,6 @@ def list_records(
     office: Optional[str] = None,
     department: Optional[str] = None,
     service_id: Optional[int] = None,
-    record_status: Optional[str] = Query(None, alias="status"),
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
     search: Optional[str] = Query(None, description="Match student_id or student_name"),
@@ -81,8 +80,6 @@ def list_records(
         q = q.filter(ServiceRecord.department == department)
     if service_id:
         q = q.filter(ServiceRecord.service_id == service_id)
-    if record_status:
-        q = q.filter(ServiceRecord.status == record_status)
     if date_from:
         q = q.filter(ServiceRecord.service_date >= date_from)
     if date_to:
@@ -156,11 +153,8 @@ def create_record(
         department=payload.department,
         service_id=service.id,
         office=service.name,
-        status=payload.status,
         notes=payload.notes,
         processed_by=user.username,
-        response_time_minutes=payload.response_time_minutes,
-        satisfaction_rating=payload.satisfaction_rating,
     )
     db.add(record)
     db.commit()
@@ -209,14 +203,8 @@ def update_record(
         record.year_level = payload.year_level
     if payload.department is not None:
         record.department = payload.department
-    if payload.status is not None:
-        record.status = payload.status
     if payload.notes is not None:
         record.notes = payload.notes
-    if payload.response_time_minutes is not None:
-        record.response_time_minutes = payload.response_time_minutes
-    if payload.satisfaction_rating is not None:
-        record.satisfaction_rating = payload.satisfaction_rating
 
     db.commit()
     db.refresh(record)

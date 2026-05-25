@@ -87,12 +87,9 @@ class ServiceRecord(Base):
     # Denormalized office name for fast filtering without a join
     office = Column(String(80), nullable=False, index=True)
 
-    status = Column(String(20), default="Completed", nullable=False)
     notes = Column(Text)
 
     processed_by = Column(String(50))  # username of the staff who logged it
-    response_time_minutes = Column(Integer)
-    satisfaction_rating = Column(Integer)  # 1-5, nullable
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 

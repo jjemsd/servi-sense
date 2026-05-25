@@ -1,7 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import type {
   RecordCreate,
-  RecordStatus,
   ReferenceData,
   Service,
   ServiceRecord,
@@ -25,10 +24,7 @@ interface FormState {
   year_level: string;
   department: string;
   service_id: string;
-  status: RecordStatus;
   notes: string;
-  response_time_minutes: string;
-  satisfaction_rating: string;
 }
 
 function emptyForm(): FormState {
@@ -40,10 +36,7 @@ function emptyForm(): FormState {
     year_level: "",
     department: "",
     service_id: "",
-    status: "Completed",
     notes: "",
-    response_time_minutes: "",
-    satisfaction_rating: "",
   };
 }
 
@@ -56,12 +49,7 @@ function fromRecord(r: ServiceRecord): FormState {
     year_level: r.year_level ?? "",
     department: r.department ?? "",
     service_id: String(r.service_id),
-    status: (r.status as RecordStatus) ?? "Completed",
     notes: r.notes ?? "",
-    response_time_minutes:
-      r.response_time_minutes != null ? String(r.response_time_minutes) : "",
-    satisfaction_rating:
-      r.satisfaction_rating != null ? String(r.satisfaction_rating) : "",
   };
 }
 
@@ -113,14 +101,7 @@ export function RecordForm({
       year_level: form.year_level || null,
       department: form.department || null,
       service_id: Number(form.service_id),
-      status: form.status,
       notes: form.notes || null,
-      response_time_minutes: form.response_time_minutes
-        ? Number(form.response_time_minutes)
-        : null,
-      satisfaction_rating: form.satisfaction_rating
-        ? Number(form.satisfaction_rating)
-        : null,
     };
 
     setSubmitting(true);
@@ -230,45 +211,6 @@ export function RecordForm({
               <option key={s.id} value={s.id}>
                 {s.name} · {s.category}
               </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="field">
-          <label className="field-label">Status</label>
-          <select
-            className="select"
-            value={form.status}
-            onChange={(e) => update("status", e.target.value as RecordStatus)}
-          >
-            {reference.record_statuses.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="field">
-          <label className="field-label">Response time (minutes)</label>
-          <input
-            type="number"
-            min="0"
-            max="1440"
-            className="input"
-            value={form.response_time_minutes}
-            onChange={(e) => update("response_time_minutes", e.target.value)}
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label">Satisfaction rating</label>
-          <select
-            className="select"
-            value={form.satisfaction_rating}
-            onChange={(e) => update("satisfaction_rating", e.target.value)}
-          >
-            <option value="">—</option>
-            {[5, 4, 3, 2, 1].map((n) => (
-              <option key={n} value={n}>{n} ★</option>
             ))}
           </select>
         </div>

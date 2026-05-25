@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session as DBSession
 
 from app.auth import get_current_user
 from app.database import get_db
-from app.models import Service, ServiceRecord, User
+from app.models import ServiceRecord, User
 
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
@@ -27,9 +27,6 @@ router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 # ── Response shapes ──────────────────────────────────────────────────────────
 class KPIs(BaseModel):
     total_records: int
-    completed_records: int
-    avg_satisfaction: Optional[float] = None
-    avg_response_time_minutes: Optional[float] = None
     unique_students: int
     active_services_used: int
 
@@ -37,12 +34,6 @@ class KPIs(BaseModel):
 class Bucket(BaseModel):
     label: str
     count: int
-
-
-class SatisfactionBucket(BaseModel):
-    label: str
-    avg_rating: Optional[float] = None
-    rated_count: int
 
 
 class HourlyBucket(BaseModel):
@@ -54,11 +45,9 @@ class AnalyticsResponse(BaseModel):
     kpis: KPIs
     by_office: list[Bucket]
     by_department: list[Bucket]
-    by_status: list[Bucket]
     by_month: list[Bucket]
     by_day_of_week: list[Bucket]
     by_hour: list[HourlyBucket]
-    satisfaction_by_office: list[SatisfactionBucket]
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -105,15 +94,6 @@ def analytics(
 
     # ── KPIs ────────────────────────────────────────────────────────────────
     total_records = base.count()
-    completed_records = base.filter(ServiceRecord.status == "Completed").count()
-
-    avg_sat = base.with_entities(
-        func.avg(ServiceRecord.satisfaction_rating)
-    ).filter(ServiceRecord.satisfaction_rating.isnot(None)).scalar()
-
-    avg_rt = base.with_entities(
-        func.avg(ServiceRecord.response_time_minutes)
-    ).filter(ServiceRecord.response_time_minutes.isnot(None)).scalar()
 
     unique_students = (
         base.with_entities(ServiceRecord.student_id)
@@ -128,9 +108,6 @@ def analytics(
 
     kpis = KPIs(
         total_records=total_records,
-        completed_records=completed_records,
-        avg_satisfaction=round(float(avg_sat), 2) if avg_sat is not None else None,
-        avg_response_time_minutes=round(float(avg_rt), 1) if avg_rt is not None else None,
         unique_students=unique_students,
         active_services_used=active_services_used,
     )
@@ -154,15 +131,6 @@ def analytics(
         .all()
     )
     by_department = [Bucket(label=d or "Unspecified", count=c) for d, c in by_dept_rows]
-
-    # ── Per-status counts ──────────────────────────────────────────────────
-    by_status_rows = (
-        _apply_filters(_base_query(db, user), office_filter, date_from, date_to)
-        .with_entities(ServiceRecord.status, func.count(ServiceRecord.id))
-        .group_by(ServiceRecord.status)
-        .all()
-    )
-    by_status = [Bucket(label=s or "Unknown", count=c) for s, c in by_status_rows]
 
     # ── Per-month trend (YYYY-MM) ──────────────────────────────────────────
     # Use strftime on SQLite, to_char on Postgres; SQLAlchemy `func` for both.
@@ -208,35 +176,11 @@ def analytics(
     hour_map = {int(h): c for h, c in by_hour_rows if h is not None}
     by_hour = [HourlyBucket(hour=h, count=hour_map.get(h, 0)) for h in range(24)]
 
-    # ── Satisfaction by office ─────────────────────────────────────────────
-    sat_rows = (
-        _apply_filters(_base_query(db, user), office_filter, date_from, date_to)
-        .filter(ServiceRecord.satisfaction_rating.isnot(None))
-        .with_entities(
-            ServiceRecord.office,
-            func.avg(ServiceRecord.satisfaction_rating),
-            func.count(ServiceRecord.id),
-        )
-        .group_by(ServiceRecord.office)
-        .order_by(func.avg(ServiceRecord.satisfaction_rating).desc())
-        .all()
-    )
-    satisfaction_by_office = [
-        SatisfactionBucket(
-            label=o or "—",
-            avg_rating=round(float(avg), 2) if avg is not None else None,
-            rated_count=n,
-        )
-        for o, avg, n in sat_rows
-    ]
-
     return AnalyticsResponse(
         kpis=kpis,
         by_office=by_office,
         by_department=by_department,
-        by_status=by_status,
         by_month=by_month,
         by_day_of_week=by_day_of_week,
         by_hour=by_hour,
-        satisfaction_by_office=satisfaction_by_office,
     )

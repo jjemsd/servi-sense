@@ -10,7 +10,7 @@ from datetime import datetime, date, time as Time
 from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict
 
-from app.constants import RoleLiteral, StatusLiteral, CategoryLiteral
+from app.constants import RoleLiteral, CategoryLiteral
 
 
 # ── Auth ───────────────────────────────────────────────────────────────────────
@@ -103,10 +103,7 @@ class RecordCreate(BaseModel):
     year_level: Optional[str] = None
     department: Optional[str] = None
     service_id: int
-    status: StatusLiteral = "Completed"
     notes: Optional[str] = None
-    response_time_minutes: Optional[int] = Field(None, ge=0, le=1440)
-    satisfaction_rating: Optional[int] = Field(None, ge=1, le=5)
 
 
 class RecordUpdate(BaseModel):
@@ -117,10 +114,7 @@ class RecordUpdate(BaseModel):
     year_level: Optional[str] = None
     department: Optional[str] = None
     service_id: Optional[int] = None
-    status: Optional[StatusLiteral] = None
     notes: Optional[str] = None
-    response_time_minutes: Optional[int] = Field(None, ge=0, le=1440)
-    satisfaction_rating: Optional[int] = Field(None, ge=1, le=5)
 
 
 class RecordResponse(BaseModel):
@@ -136,11 +130,8 @@ class RecordResponse(BaseModel):
     service_name: str
     service_category: str
     office: str
-    status: str
     notes: Optional[str] = None
     processed_by: Optional[str] = None
-    response_time_minutes: Optional[int] = None
-    satisfaction_rating: Optional[int] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -178,6 +169,5 @@ class ReferenceData(BaseModel):
     departments: list[str]
     year_levels: list[str]
     service_categories: list[str]
-    record_statuses: list[str]
     roles: list[str]
     offices: list[str]  # active service names

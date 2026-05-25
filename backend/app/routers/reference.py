@@ -2,7 +2,7 @@
 routers/reference.py — Reference data for frontend dropdowns.
 
 One endpoint, returns everything the frontend needs to render selectors
-(departments, year levels, statuses, roles, active offices).
+(departments, year levels, roles, active offices).
 """
 
 from fastapi import APIRouter, Depends
@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session as DBSession
 from app.auth import get_current_user
 from app.constants import (
     DEPARTMENTS,
-    RECORD_STATUSES,
     ROLES,
     SERVICE_CATEGORIES,
     YEAR_LEVELS,
@@ -40,7 +39,6 @@ def reference_data(
         departments=DEPARTMENTS,
         year_levels=YEAR_LEVELS,
         service_categories=SERVICE_CATEGORIES,
-        record_statuses=RECORD_STATUSES,
         roles=ROLES,
         offices=offices,
     )

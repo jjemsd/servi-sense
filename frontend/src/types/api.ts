@@ -5,12 +5,6 @@
 
 export type Role = "admin" | "staff";
 
-export type RecordStatus =
-  | "Completed"
-  | "In Progress"
-  | "Cancelled"
-  | "No Show";
-
 export type ServiceCategory =
   | "Academic"
   | "Health"
@@ -67,11 +61,8 @@ export interface ServiceRecord {
   service_name: string;
   service_category: string;
   office: string;
-  status: string;
   notes: string | null;
   processed_by: string | null;
-  response_time_minutes: number | null;
-  satisfaction_rating: number | null;
   created_at: string;
 }
 
@@ -90,10 +81,7 @@ export interface RecordCreate {
   year_level?: string | null;
   department?: string | null;
   service_id: number;
-  status?: RecordStatus;
   notes?: string | null;
-  response_time_minutes?: number | null;
-  satisfaction_rating?: number | null;
 }
 
 export interface RecordUpdate extends Partial<RecordCreate> {}
@@ -102,7 +90,6 @@ export interface RecordsFilters {
   office?: string;
   department?: string;
   service_id?: number;
-  status?: RecordStatus;
   date_from?: string;
   date_to?: string;
   search?: string;
@@ -151,7 +138,6 @@ export interface ReferenceData {
   departments: string[];
   year_levels: string[];
   service_categories: string[];
-  record_statuses: string[];
   roles: string[];
   offices: string[];
 }

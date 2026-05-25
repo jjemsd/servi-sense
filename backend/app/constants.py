@@ -20,14 +20,9 @@ SERVICE_CATEGORIES: list[str] = [
     "Academic", "Health", "Enrollment", "Student Life", "Other",
 ]
 
-RECORD_STATUSES: list[str] = [
-    "Completed", "In Progress", "Cancelled", "No Show",
-]
-
 ROLES: list[str] = ["admin", "staff"]
 
 
 # Literal types for Pydantic validation
 RoleLiteral = Literal["admin", "staff"]
-StatusLiteral = Literal["Completed", "In Progress", "Cancelled", "No Show"]
 CategoryLiteral = Literal["Academic", "Health", "Enrollment", "Student Life", "Other"]

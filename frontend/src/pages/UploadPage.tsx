@@ -40,9 +40,6 @@ const EXPECTED_COLUMNS: ColumnSpec[] = [
   { name: "time", required: false, description: "Time of service in 24-hour format", example: "10:30:00" },
   { name: "year_level", required: false, description: "1st Year, 2nd Year, …, 5th Year", example: "3rd Year" },
   { name: "department", required: false, description: "Student's program", example: "BSIT" },
-  { name: "status", required: false, description: "Completed, In Progress, Cancelled, No Show. Defaults to Completed.", example: "Completed" },
-  { name: "response_time_minutes", required: false, description: "How long the service took, in minutes", example: "12" },
-  { name: "satisfaction_rating", required: false, description: "Integer 1–5", example: "5" },
   { name: "notes", required: false, description: "Optional free-text", example: "Borrowed thesis reference" },
 ];
 

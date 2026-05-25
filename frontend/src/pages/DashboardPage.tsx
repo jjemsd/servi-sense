@@ -30,8 +30,8 @@ export function DashboardPage() {
   const kpis = data?.kpis;
   const byMonth = data?.by_month ?? [];
   const byOffice = data?.by_office ?? [];
-  const byStatus = data?.by_status ?? [];
-  const secondChartData = user?.role === "admin" ? byOffice : byStatus;
+  const byDepartment = data?.by_department ?? [];
+  const secondChartData = user?.role === "admin" ? byOffice : byDepartment;
 
   return (
     <>
@@ -61,15 +61,6 @@ export function DashboardPage() {
           label="Unique students"
           value={kpis?.unique_students ?? "—"}
           subtitle="served"
-        />
-        <Stat
-          label="Avg satisfaction"
-          value={
-            kpis?.avg_satisfaction != null
-              ? `${kpis.avg_satisfaction} ★`
-              : "—"
-          }
-          subtitle="out of 5"
         />
         <Stat
           label="Services used"
@@ -119,12 +110,12 @@ export function DashboardPage() {
         <div className="chart-panel">
           <div className="chart-panel-header">
             <div className="chart-panel-title">
-              {user?.role === "admin" ? "By office" : "Status breakdown"}
+              {user?.role === "admin" ? "By office" : "By department"}
             </div>
             <div className="chart-panel-subtitle">
               {user?.role === "admin"
                 ? "Where records originate"
-                : "Record outcomes"}
+                : "Top requesting programs"}
             </div>
           </div>
           <div className="chart-panel-body">

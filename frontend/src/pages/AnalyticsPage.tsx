@@ -3,12 +3,8 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
-  Legend,
   Line,
   LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -19,18 +15,6 @@ import { PageHeader } from "../components/PageHeader";
 import { getAnalytics, type AnalyticsData } from "../api/analytics";
 import { getReference } from "../api/reference";
 import type { ReferenceData } from "../types/api";
-
-// Brand palette for chart segments
-const PALETTE = [
-  "#0B1F3A",
-  "#D4AF37",
-  "#1A3460",
-  "#8B6914",
-  "#243E6E",
-  "#E8CC6A",
-  "#5A7FBF",
-  "#0F8A5F",
-];
 
 function StatCard({
   label,
@@ -172,38 +156,14 @@ export function AnalyticsPage() {
               subtitle="in selected range"
             />
             <StatCard
-              label="Completed"
-              value={data.kpis.completed_records}
-              subtitle={
-                data.kpis.total_records
-                  ? `${Math.round(
-                      (data.kpis.completed_records / data.kpis.total_records) *
-                        100,
-                    )}% completion rate`
-                  : "—"
-              }
-            />
-            <StatCard
               label="Unique students"
               value={data.kpis.unique_students}
               subtitle="served"
             />
             <StatCard
-              label="Avg satisfaction"
-              value={
-                data.kpis.avg_satisfaction != null
-                  ? `${data.kpis.avg_satisfaction} ★`
-                  : "—"
-              }
-              subtitle="out of 5"
-            />
-            <StatCard
-              label="Avg response time"
-              value={
-                data.kpis.avg_response_time_minutes != null
-                  ? `${data.kpis.avg_response_time_minutes} min`
-                  : "—"
-              }
+              label="Services used"
+              value={data.kpis.active_services_used}
+              subtitle="distinct"
             />
           </div>
 
@@ -273,33 +233,6 @@ export function AnalyticsPage() {
               )}
             </Panel>
 
-            {/* By status */}
-            <Panel title="By status" subtitle="Record outcomes">
-              {data.by_status.length === 0 ? (
-                <EmptyChart />
-              ) : (
-                <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie
-                      data={data.by_status}
-                      dataKey="count"
-                      nameKey="label"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={90}
-                      label
-                    >
-                      {data.by_status.map((_, i) => (
-                        <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </Panel>
-
             {/* By day of week */}
             <Panel title="By day of week" subtitle="Weekly distribution">
               <ResponsiveContainer width="100%" height={280}>
@@ -330,37 +263,6 @@ export function AnalyticsPage() {
                 </BarChart>
               </ResponsiveContainer>
             </Panel>
-
-            {/* Satisfaction by office */}
-            {data.satisfaction_by_office.length > 0 && (
-              <Panel
-                title="Average satisfaction by office"
-                subtitle="From rated records only"
-              >
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={data.satisfaction_by_office} layout="vertical">
-                    <CartesianGrid stroke="#E5E8EE" strokeDasharray="3 3" />
-                    <XAxis
-                      type="number"
-                      domain={[0, 5]}
-                      stroke="#6B7280"
-                      fontSize={12}
-                    />
-                    <YAxis
-                      dataKey="label"
-                      type="category"
-                      width={140}
-                      stroke="#6B7280"
-                      fontSize={12}
-                    />
-                    <Tooltip
-                      formatter={(v: number) => [`${v} ★`, "avg rating"]}
-                    />
-                    <Bar dataKey="avg_rating" fill="#D4AF37" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Panel>
-            )}
           </div>
         </>
       )}

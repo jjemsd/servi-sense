@@ -15,10 +15,7 @@ Expected columns (case-insensitive, extras ignored):
 - time             (optional)  HH:MM
 - year_level       (optional)
 - department       (optional)
-- status           (optional)  defaults to "Completed"
 - notes            (optional)
-- response_time_minutes (optional, int)
-- satisfaction_rating   (optional, int 1-5)
 """
 
 from io import BytesIO
@@ -38,7 +35,6 @@ from fastapi import (
 from sqlalchemy.orm import Session as DBSession
 
 from app.auth import get_current_user
-from app.constants import RECORD_STATUSES
 from app.database import get_db
 from app.models import Service, ServiceRecord, UploadedFile, User
 from app.schemas import (
@@ -153,42 +149,11 @@ def _process_dataframe(
                     except Exception:
                         pass  # silently drop a bad time
 
-            row_status = _value_or_none(row.get("status")) or "Completed"
-            if row_status not in RECORD_STATUSES:
-                errors.append(
-                    f"Row {row_num}: invalid status '{row_status}' (allowed: {RECORD_STATUSES})"
-                )
-                continue
-
             student_id = _value_or_none(row["student_id"])
             student_name = _value_or_none(row["student_name"])
             if not student_id or not student_name:
                 errors.append(f"Row {row_num}: student_id and student_name are required")
                 continue
-
-            rating_raw = row.get("satisfaction_rating") if "satisfaction_rating" in df.columns else None
-            rating = None
-            if pd.notna(rating_raw):
-                try:
-                    rating = int(rating_raw)
-                    if not (1 <= rating <= 5):
-                        rating = None
-                except (TypeError, ValueError):
-                    rating = None
-
-            rtm_raw = (
-                row.get("response_time_minutes")
-                if "response_time_minutes" in df.columns
-                else None
-            )
-            rtm = None
-            if pd.notna(rtm_raw):
-                try:
-                    rtm = int(rtm_raw)
-                    if rtm < 0:
-                        rtm = None
-                except (TypeError, ValueError):
-                    rtm = None
 
             record = ServiceRecord(
                 service_date=svc_date,
@@ -200,11 +165,8 @@ def _process_dataframe(
                 department=_value_or_none(row.get("department")) if "department" in df.columns else None,
                 service_id=services_for_office[service_name],
                 office=service_name,
-                status=row_status,
                 notes=_value_or_none(row.get("notes")) if "notes" in df.columns else None,
                 processed_by=username,
-                response_time_minutes=rtm,
-                satisfaction_rating=rating,
             )
             db.add(record)
             inserted += 1
