@@ -1,167 +1,166 @@
-# ServiSense v2
+# ServiSense — Setup & Test Reference
 
-Student Services Utilization & Performance Analytics System.
-React + TypeScript frontend, FastAPI + PostgreSQL backend.
+**Student Services Utilization & Performance Analytics System**
 
-> **You are on Stage 5: Full application is complete.**
-> ✅ Stage 1 — scaffolding (FastAPI shell, CORS, env vars, Render deploy)
-> ✅ Stage 2 — auth (bcrypt, session cookies, login/logout/me, seeded users)
-> ✅ Stage 3 — CRUD endpoints (records, services, users, uploads, reference)
-> ✅ Stage 4 — frontend foundation (routing, auth, layout shell)
-> ✅ Stage 5 — frontend pages (all real, with analytics charts)
-> ⏳ Stage 6 — frontend deployment to Render + CORS lockdown
+A web application for logging and analyzing student-services usage (Guidance, Library, Clinic, Registrar, Cashier, etc.) across campus offices. FastAPI backend + React frontend, with role-based access and bulk CSV/Excel upload.
 
-The app is now fully functional end-to-end. Stage 6 is purely deployment.
+> This README is a quick-start + tester reference. It does **not** replace the original project README — it adds the things needed to actually run and test the system (accounts, DB location, schema, test data).
 
 ---
 
-## What works after Stage 5
+## 1. Test Accounts
 
-**Pages** (every nav item is a real page now):
+These accounts are seeded automatically on first startup (see `backend/app/seed.py`). They are also included in `servisense_schema.sql`.
 
-- **Dashboard** — KPI cards + monthly trend line chart + status/office bar chart
-- **Records** — filters (office/dept/status/date range/search), paginated table, edit-in-modal, delete with confirm
-- **Add Record** — full form with reference dropdowns, staff-locked to their service
-- **Bulk Upload** — drag-and-drop, target office selector (admin), per-row error display, upload history with download/delete
-- **Analytics** — 5 KPI cards + 6 Recharts visualizations (monthly trend, by office, by department, status pie, day-of-week, hour-of-day, satisfaction by office), with date range and office filters
-- **My Account** (Profile) — account info + change-password form with confirmation
-- **System Settings** (admin) — services catalog management (CRUD, activate/deactivate)
-- **User Management** (admin) — users CRUD, role/office assignment, deactivate, password reset modal
-- **About** — system overview
+| Username   | Password      | Role  | Assigned Office       |
+|------------|---------------|-------|-----------------------|
+| `admin`    | `admin123`    | admin | — (all offices)       |
+| `guidance` | `guidance123` | staff | Guidance Counseling   |
+| `library`  | `library123`  | staff | Library               |
 
-**Backend (new in Stage 5):**
-
-- `GET /api/analytics` — single endpoint returning KPIs + 7 aggregations (by office, dept, status, month, day-of-week, hour-of-day, satisfaction-by-office). Role-scoped automatically, supports `office`, `date_from`, `date_to` query params.
-
-**Verified with 17/17 backend integration tests:**
-
-- KPIs compute correctly (total, completed, unique students, avg satisfaction, avg response time)
-- All 7 aggregations populated
-- Date range filtering works
-- Admin office filter works
-- **Staff cannot bypass office scoping** — even if they pass `?office=…`, the backend ignores it and scopes to their `assigned_office`
-- Change-own-password endpoint works
+> ⚠️ These are **demo credentials**. Change them before any real deployment.
 
 ---
 
-## Demo accounts (seeded on first backend startup)
+## 2. User Access Types (Roles)
 
-| Username | Password | Role | Assigned office |
-|----------|----------|------|-----------------|
-| `admin` | `admin123` | admin | (any) |
-| `guidance` | `guidance123` | staff | Guidance Counseling |
-| `library` | `library123` | staff | Library |
+The system has **two roles**:
+
+### `admin`
+- Full access to every office and all data.
+- Can manage users (create/edit/deactivate staff and admins).
+- Can manage the services/offices catalog (System Settings).
+- Can view system-wide analytics across all offices.
+- Can bulk-upload records for **any** office (must pick a target office).
+- Not tied to a single office (`assigned_office` is `NULL`).
+
+### `staff`
+- Scoped to **their own assigned office only** (e.g. the `library` account only sees Library data).
+- Can create and view service records for their office.
+- Can bulk-upload records for their own office only (target office is forced).
+- Cannot manage users or the global services catalog.
+- Sees analytics limited to their office.
+
+Auth is **server-side session based**: on login a session row is created in the `sessions` table and an httpOnly cookie (`servisense_session`, 12-hour lifetime) is set. Logout deletes the session row. Passwords are hashed with **bcrypt**.
 
 ---
 
-## Run it locally
+## 3. Where the Database Is
 
-### Backend (terminal 1)
+The database location depends on environment (configured via the `DATABASE_URL` env var in `backend/app/config.py`):
 
+### Local development (default)
+- **SQLite** — file at `backend/servisense.db` (created automatically on first run).
+- Default URL: `sqlite:///./servisense.db`
+- Tables are auto-created at startup by SQLAlchemy (`Base.metadata.create_all`), and demo data is seeded if empty. **No manual DB setup needed for local dev.**
+
+### Production (Render)
+- **PostgreSQL**, provisioned by the Render Blueprint (`render.yaml`) as database **`servisense-db`** (plan `basic-256mb`).
+- The backend service `servisense-api` receives the connection string automatically via the `DATABASE_URL` env var (`fromDatabase` binding).
+- Old-style `postgres://` URLs are auto-normalized to `postgresql://` (see `backend/app/database.py`).
+
+To point local dev at Postgres instead of SQLite, create `backend/.env`:
+```env
+DATABASE_URL=postgresql://user:password@localhost:5432/servisense
+```
+
+---
+
+## 4. Database Schema & Test Data (included files)
+
+| File                                | What it is |
+|-------------------------------------|------------|
+| `servisense_schema.sql`             | Full PostgreSQL schema (5 tables) + seed data (offices + the 3 demo users with real bcrypt hashes). |
+| `test_data_guidance_counseling.xlsx`| 25 sample records for the **Guidance Counseling** office. |
+| `test_data_library.xlsx`            | 25 sample records for the **Library** office. |
+| `test_data_clinic_medical.xlsx`     | 25 sample records for the **Clinic / Medical** office. |
+| `test_data_registrar.xlsx`          | 25 sample records for the **Registrar** office. |
+| `test_data_cashier.xlsx`            | 25 sample records for the **Cashier** office. |
+
+Each test-data file is a **separate workbook for one office** (the uploader reads only the first sheet, so separate files upload cleanly).
+
+### Loading the schema manually (PostgreSQL)
+```bash
+createdb servisense
+psql -d servisense -f servisense_schema.sql
+```
+*(For SQLite local dev you don't need this — the app builds the tables itself.)*
+
+### Tables
+- **users** — login, role, assigned office, bcrypt password hash.
+- **services** — catalog of offices/services (FK target for records).
+- **service_records** — one row per service event (student visiting an office).
+- **uploaded_files** — audit trail of bulk CSV/Excel uploads.
+- **sessions** — server-side auth sessions (cookie token store).
+
+### Using the test data
+Each file holds 25 records for one office. Required columns: `service_date, student_id, student_name, service_name`; optional: `time, year_level, department, notes`.
+
+> Uploader rule: every row's `service_name` must match the office you upload for — that's why there's one file per office. Upload the matching file (staff to their own office; admin picks the target office).
+
+---
+
+## 5. Tech Stack
+
+### Backend
+- **Python 3.12**
+- **FastAPI** (`fastapi[standard]` 0.136.x) — REST API
+- **Uvicorn** — ASGI server
+- **SQLAlchemy 2.0** — ORM
+- **PostgreSQL** (prod, via `psycopg2-binary`) / **SQLite** (local dev)
+- **bcrypt** — password hashing
+- **pandas** + **openpyxl** — CSV/Excel parsing for bulk upload
+- **fpdf2** — PDF report generation
+- Server-side cookie sessions (no JWT)
+
+### Frontend
+- **React 19** + **TypeScript ~5.6**
+- **Vite 6** — build tool / dev server
+- **React Router 7**
+- **Recharts** — analytics charts
+
+### Deployment
+- **Render** Blueprint (`render.yaml`): backend web service + managed Postgres + static-site frontend.
+
+---
+
+## 6. System Requirements
+
+### Software
+- **Python** ≥ 3.12
+- **Node.js** ≥ 18 (Node 20+ recommended for Vite 6) and **npm**
+- **PostgreSQL** ≥ 13 (production / optional locally) — not needed if using the default SQLite
+- A modern browser (Chrome, Edge, Firefox, Safari)
+
+### Hardware (development)
+- ~2 GB free RAM, ~500 MB disk for dependencies. Any modern laptop is fine.
+
+---
+
+## 7. Running Locally
+
+### Backend
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate    # Windows: .venv\Scripts\activate
+# Windows: .venv\Scripts\activate   |   macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env         # Windows: copy .env.example .env
 uvicorn app.main:app --reload
+# API at http://127.0.0.1:8000  (docs at /docs)
 ```
+On first run it creates `servisense.db` (SQLite) and seeds the offices + demo accounts.
 
-Backend will run at **http://localhost:8000** (Swagger UI at `/docs`).
-
-### Frontend (terminal 2)
-
+### Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
+# App at http://127.0.0.1:5173
 ```
+The dev frontend talks to the API via `VITE_API_URL` (see `frontend/.env.development`). Allowed CORS origins default to `http://localhost:5173` / `http://127.0.0.1:5173`.
 
-Frontend will run at **http://localhost:5173**. Sign in as `admin / admin123` and you'll land on the live Dashboard with charts.
-
----
-
-## Adding test data quickly
-
-The dashboard/analytics look more interesting with data. Two options:
-
-**A) Manually:** Sign in as admin → Add Record (a few times) or as `library` to scope to one office.
-
-**B) Bulk:** Upload a CSV with columns:
-```
-service_date,time,student_id,student_name,year_level,department,service_name,status,response_time_minutes,satisfaction_rating,notes
-2026-05-15,10:30:00,2024-00001,Juan Dela Cruz,3rd Year,BSIT,Library,Completed,5,5,
-2026-05-15,11:00:00,2024-00002,Maria Santos,2nd Year,BSCoE,Library,Completed,3,4,
-```
-
-Each row's `service_name` must match a service name in the catalog.
-
----
-
-## Repo layout
-
-```
-servisense/
-├── backend/
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── config.py, database.py, constants.py
-│   │   ├── models.py, schemas.py, auth.py, seed.py
-│   │   └── routers/
-│   │       ├── auth.py, records.py, services.py
-│   │       ├── users.py, uploads.py, reference.py
-│   │       └── analytics.py          ← new in Stage 5
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── App.tsx, main.tsx
-│   │   ├── api/                      ← 8 typed modules
-│   │   │   ├── client.ts             ← fetch wrapper, cookies, 401 events
-│   │   │   ├── auth.ts, records.ts, services.ts
-│   │   │   ├── users.ts, uploads.ts
-│   │   │   ├── reference.ts
-│   │   │   └── analytics.ts          ← new in Stage 5
-│   │   ├── auth/                     ← AuthContext, ProtectedRoute
-│   │   ├── components/
-│   │   │   ├── Layout, Sidebar, PageHeader
-│   │   │   ├── Modal, ConfirmDialog  ← new in Stage 5
-│   │   │   ├── Pagination, StatusBadge   ← new in Stage 5
-│   │   │   └── RecordForm            ← new in Stage 5 (shared add/edit)
-│   │   ├── pages/                    ← 10 real pages, all functional
-│   │   ├── types/api.ts
-│   │   └── styles/
-│   │       ├── global.css, layout.css, login.css
-│   │       └── pages.css             ← new in Stage 5
-│   ├── package.json, vite.config.ts
-│   └── tsconfig.json + tsconfig.app.json + tsconfig.node.json
-├── render.yaml
-└── README.md
-```
-
----
-
-## How the dev setup avoids cookie pain
-
-In development:
-- Frontend served by Vite at `http://localhost:5173`
-- All `/api/*` requests are proxied to `http://localhost:8000` by Vite
-- Browser sees everything as same-origin → cookies just work (SameSite=Lax)
-
-In production (Stage 6):
-- Frontend deployed to `https://servisense-web.onrender.com`
-- Backend deployed to `https://servisense-api.onrender.com`
-- Different origins → backend sets `SameSite=None; Secure` cookies
-- CORS configured with explicit allowed origin and `allow_credentials=true`
-
----
-
-## What's next
-
-**Stage 6** — the final stage, all deployment:
-
-1. Add the static-site block back to `render.yaml` for the frontend
-2. Set `VITE_API_URL` in Render's static-site env vars to the deployed backend URL
-3. Lock down `CORS_ORIGINS` env var on the backend to the deployed frontend URL (not `*`)
-4. Push, deploy, verify end-to-end with real cookies + CORS
-
-After that, you're done — full-stack app live on Render.
+### Quick test
+1. Open the frontend, log in as `admin / admin123`.
+2. Go to Uploads → upload `test_data_library.xlsx` (or any office file) and pick the matching target office.
+3. Check the Analytics page to see the seeded records visualized.
+4. Log out, log back in as `library / library123` to confirm office-scoped access.
